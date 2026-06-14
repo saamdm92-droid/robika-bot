@@ -1,56 +1,48 @@
 from flask import Flask, request
 import requests
+import os
 
 app = Flask(__name__)
 
-# توکن ربات
+# 🔐 توکن رو اینجا بذار (یا از ENV بخون)
 TOKEN = "BFGFCG0YZHLUSWZSHKDFEMFMRFQJIIKBWLKIPKEXZMJZGBMJYALMUATBMFDJGJWI"
 
-API = "https://botapi.rubika.ir/v3/"
+BASE_URL = f"https://botapi.rubika.ir/v3/{TOKEN}"
 
-def send(chat_id, text):
-    try:
-        requests.post(
-            API + "sendMessage",
-            json={
-                "auth": TOKEN,
-                "chat_id": chat_id,
-                "text": text
-            }
-        )
-    except Exception as e:
-        print("Send Error:", e)
+def send_message(chat_id, text):
+    url = f"{BASE_URL}/sendMessage"
+    data = {
+        "chat_id": chat_id,
+        "text": text
+    }
+    requests.post(url, json=data)
 
-# صفحه اصلی برای تست
-@app.route("/")
-def home():
-    return "Bot is running!"
-
-# وبهوک
-@app.route("/webhook", methods=["POST"])
+@app.route("/", methods=["POST"])
 def webhook():
-    data = request.json or {}
+    data = request.json
 
-    print("DATA:", data)
+    if "update" in data:
+        update = data["update"]
 
-    text = data.get("text", "")
-    chat_id = data.get("chat_id")
+        if update.get("type") == "NewMessage":
+            msg = update["new_message"]
+            text = msg.get("text", "")
+            chat_id = update.get("chat_id")
 
-    if chat_id:
-        if text == "/start":
-            send(chat_id, "سلام 👋 ربات روشن است")
+            print("User:", text)
 
-        elif text.startswith("/create"):
-            country = text.replace("/create", "").strip()
-            if country:
-                send(chat_id, f"کشور {country} ساخته شد ✔️")
+            if text == "سلام":
+                send_message(chat_id, "سلام 👋 خوش اومدی به ربات روبیکا")
+
+            elif text == "ربات":
+                send_message(chat_id, "من آنلاین هستم 🤖")
+
             else:
-                send(chat_id, "مثال: /create Iran")
+                send_message(chat_id, "دستور ناشناخته ❌")
 
-        elif text == "/list":
-            send(chat_id, "فعلاً لیست کشورها خالی است")
+    return "ok", 200
 
-    return "ok"
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
