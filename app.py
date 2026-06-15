@@ -10,5 +10,5 @@ def home():
 @app.route("/webhook", methods=["POST"])
 def webhook():
     data = request.json
-    print("📩 UPDATE:", data)
+    print("UPDATE:", data)
     return "OK", 200
